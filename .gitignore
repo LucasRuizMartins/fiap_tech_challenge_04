@@ -1,0 +1,72 @@
+# ==========================================
+# Ambientes & Credenciais (CRÍTICO - NUNCA SUBIR)
+# ==========================================
+.env
+.env.*
+fase_4/.env
+!.env.example
+
+# ==========================================
+# Dados Locais & Bases (Ficarão no S3)
+# ==========================================
+data/
+data/**
+fase_4/data/
+fase_4/data/**
+*.csv
+*.parquet
+*.zip
+*.tar.gz
+*.tsv
+
+# ==========================================
+# Python / Cache / Compilados
+# ==========================================
+__pycache__/
+*/__pycache__/
+*/*/__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# ==========================================
+# Jupyter Notebooks Checkpoints
+# ==========================================
+.ipynb_checkpoints/
+*/.ipynb_checkpoints/
+
+# ==========================================
+# Modelos & Bancos Vetoriais (RAG)
+# ==========================================
+chroma_db/
+faiss_index/
+vector_store/
+models/*
+!models/.gitkeep
+fase_4/models/*
+!fase_4/models/.gitkeep
+*.pkl
+*.joblib
+*.pt
+*.bin
+*.onnx
+
+# ==========================================
+# Ambientes Virtuais
+# ==========================================
+.venv/
+venv/
+ENV/
+env/
+
+# ==========================================
+# IDEs & Sistema Operacional
+# ==========================================
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+*.log
