@@ -291,20 +291,22 @@ with aba_sac:
     ]
     
     col_ex1, col_ex2, col_ex3 = st.columns(3)
-    texto_exemplo = ""
+    if "texto_sac" not in st.session_state:
+        st.session_state["texto_sac"] = ""
+
+    def _preencher_exemplo(texto):
+        st.session_state["texto_sac"] = texto
+
     with col_ex1:
-        if st.button("Exemplo: Reclamação Grave"):
-            texto_exemplo = exemplos_sac[0]
+        st.button("Exemplo: Reclamação Grave", on_click=_preencher_exemplo, args=(exemplos_sac[0],))
     with col_ex2:
-        if st.button("Exemplo: Elogio de Entrega"):
-            texto_exemplo = exemplos_sac[1]
+        st.button("Exemplo: Elogio de Entrega", on_click=_preencher_exemplo, args=(exemplos_sac[1],))
     with col_ex3:
-        if st.button("Exemplo: Divergência"):
-            texto_exemplo = exemplos_sac[2]
+        st.button("Exemplo: Divergência", on_click=_preencher_exemplo, args=(exemplos_sac[2],))
             
     texto_analise = st.text_area(
         "Cole ou digite a mensagem do cliente:", 
-        value=texto_exemplo,
+        key="texto_sac",
         height=120,
         placeholder="Digite o comentário do cliente aqui..."
     )
