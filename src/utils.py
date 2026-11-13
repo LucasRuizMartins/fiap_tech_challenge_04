@@ -114,3 +114,57 @@ def listar_arquivos_s3(s3_client, bucket: str, prefixo: str = "") -> list[str]:
     return chaves
 
 
+def subir_diretorio_s3(
+    diretorio_local: Path,
+    s3_client,
+    bucket: str,
+    prefixo_s3: str = "models",
+    ignorar: tuple[str, ...] = (".gitkeep",),
+) -> int:
+    """
+    Faz upload recursivo de todos os arquivos de um diretório local para um prefixo no S3.
+    """
+    diretorio_local = Path(diretorio_local)
+    prefixo = prefixo_s3.strip("/")
+    enviados = 0
+
+    for arquivo in diretorio_local.rglob("*"):
+        if not arquivo.is_file() or arquivo.name in ignorar:
+            continue
+        relativo = arquivo.relative_to(diretorio_local).as_posix()
+        chave = f"{prefixo}/{relativo}" if prefixo else relativo
+        s3_client.upload_file(str(arquivo), bucket, chave)
+        enviados += 1
+
+    return enviados
+
+
+def baixar_diretorio_s3(
+    s3_client,
+    bucket: str,
+    prefixo_s3: str,
+    diretorio_destino: Path,
+) -> int:
+    """
+    Baixa recursivamente todos os objetos de um prefixo no S3 para um diretório local.
+    """
+    diretorio_destino = Path(diretorio_destino)
+    prefixo = prefixo_s3.strip("/")
+    prefixo_busca = f"{prefixo}/" if prefixo else ""
+    baixados = 0
+
+    paginator = s3_client.get_paginator("list_objects_v2")
+    for page in paginator.paginate(Bucket=bucket, Prefix=prefixo_busca):
+        for obj in page.get("Contents", []):
+            chave = obj["Key"]
+            if chave.endswith("/"):
+                continue
+            relativo = chave[len(prefixo_busca):] if prefixo_busca else chave
+            destino = diretorio_destino / relativo
+            destino.parent.mkdir(parents=True, exist_ok=True)
+            s3_client.download_file(bucket, chave, str(destino))
+            baixados += 1
+
+    return baixados
+
+

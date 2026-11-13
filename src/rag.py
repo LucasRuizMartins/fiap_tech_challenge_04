@@ -16,14 +16,41 @@ from langchain_core.output_parsers import StrOutputParser
 from langchain_google_genai import GoogleGenerativeAIEmbeddings, ChatGoogleGenerativeAI
 from langchain_chroma import Chroma
 
+from src.utils import iniciar_cessao_aws, baixar_diretorio_s3
+
 # Carregar variáveis de ambiente
 load_dotenv(find_dotenv())
 
 # Diretórios padrão
 BASE_DIR = Path(__file__).resolve().parents[1]
-CHROMA_PERSIST_DIR = BASE_DIR / "fase_4" / "models" / "chroma_db"
-CLASSIFICADOR_PATH = BASE_DIR / "fase_4" / "models" / "classificador_sentimento.pkl"
+MODELS_DIR = BASE_DIR / "fase_4" / "models"
+CHROMA_PERSIST_DIR = MODELS_DIR / "chroma_db"
+CLASSIFICADOR_PATH = MODELS_DIR / "classificador_sentimento.pkl"
 COLLECTION_NAME = "olist_customer_reviews"
+S3_MODELS_PREFIX = "models"
+
+
+def garantir_artefatos_locais() -> None:
+    """
+    Garante que o banco vetorial ChromaDB e o classificador existam localmente.
+    Caso estejam ausentes (ex.: novo clone do repositório), baixa do S3 automaticamente.
+    """
+    chroma_ok = (CHROMA_PERSIST_DIR / "chroma.sqlite3").exists()
+    classificador_ok = CLASSIFICADOR_PATH.exists()
+    if chroma_ok and classificador_ok:
+        return
+
+    bucket = os.getenv("BUCKET_NAME")
+    if not bucket or not os.getenv("AWS_ACCESS_KEY_ID") or not os.getenv("AWS_SECRET_ACCESS_KEY"):
+        return
+
+    s3_client = iniciar_cessao_aws().client("s3")
+    baixar_diretorio_s3(
+        s3_client=s3_client,
+        bucket=bucket,
+        prefixo_s3=S3_MODELS_PREFIX,
+        diretorio_destino=MODELS_DIR,
+    )
 
 
 def obter_embeddings() -> GoogleGenerativeAIEmbeddings:
@@ -51,7 +78,9 @@ def obter_llm(temperatura: float = 0.1) -> ChatGoogleGenerativeAI:
 
 
 def carregar_vectorstore(diretorio_persist: Optional[Path] = None) -> Chroma:
-    """Carrega a base vetorial ChromaDB persistida localmente."""
+    """Carrega a base vetorial ChromaDB persistida localmente (baixando do S3 se ausente)."""
+    if diretorio_persist is None:
+        garantir_artefatos_locais()
     caminho = diretorio_persist or CHROMA_PERSIST_DIR
     embeddings = obter_embeddings()
     
@@ -64,6 +93,8 @@ def carregar_vectorstore(diretorio_persist: Optional[Path] = None) -> Chroma:
 
 def carregar_classificador():
     """Carrega o pipeline treinado de TF-IDF + LogisticRegression do Scikit-Learn."""
+    if not CLASSIFICADOR_PATH.exists():
+        garantir_artefatos_locais()
     if not CLASSIFICADOR_PATH.exists():
         return None
     return joblib.load(CLASSIFICADOR_PATH)
